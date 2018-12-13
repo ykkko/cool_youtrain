@@ -7,8 +7,7 @@ from pathlib import Path
 from torch.utils.data import Dataset, DataLoader
 from youtrain.factory import DataFactory
 from transforms import test_transform, mix_transform
-from utils import get_mask, get_full_mask, get_full_mask_bounds
-from tqdm import tqdm 
+from tqdm import tqdm
 from albumentations.torch import ToTensor
 import matplotlib
 import matplotlib.pyplot as plt

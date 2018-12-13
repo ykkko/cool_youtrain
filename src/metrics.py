@@ -4,7 +4,6 @@ import torch.nn as nn
 from  albumentations import *
 import torch
 import pandas as pd
-from utils import get_mask
 from scipy.ndimage import label
 
 

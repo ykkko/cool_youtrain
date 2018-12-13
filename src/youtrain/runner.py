@@ -7,7 +7,6 @@ from tqdm import tqdm
 import torch
 import torch.nn as nn
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-from src.schedulers import Cycle_LR
 
 tqdm.monitor_interval = 0
 
