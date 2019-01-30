@@ -139,7 +139,7 @@ class Runner:
         report['loss'] = loss.data
 
         for metric, f in self.metrics.functions.items():
-            report[metric] = f(predictions[0], labels)
+            report[metric] = f(predictions, labels)
 
         if is_train:
             loss.backward()

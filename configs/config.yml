@@ -1,32 +1,54 @@
 data_params:
-  batch_size: 16
-  num_workers: 16
+  batch_size: 32
+  num_workers: 8
   augmentation_params:
-    resize: 320
+    resize: 224
 
 train_params:
-  name: rn18
-  model: models.MultiResnet18
+  name: rn34-shot_type_2
+  model: models.Net34
   model_params:
-    num_filters: 16
     pretrained: True
-    num_classes: 2
-  loss: losses.BCELoss2d
+    num_classes: 4
+  loss: losses.CrossEntropyLoss
   loss_params: {}
-  metrics: [losses.BCELoss2d]
+  metrics: [metrics.Accuracy]
   steps_per_epoch: 2500
   new_save: True
-#  weights:
+#  weights: /mnt/hdd2/datasets/naive_data/shot_dataset/weights/weights/rn34-shot_type-wedding_dataset/0/tt_1_0.79849.pt
 stages:
 -
   load_best: False
   optimizer: Adam
   optimizer_params:
-    lr: 0.001
+    lr: 0.0001
   scheduler: ReduceLROnPlateau
   scheduler_params:
     patience: 5
-    factor: 0.5
-    min_lr: 0.000001
+    factor: 0.1
+    min_lr: 0.0000001
+    verbose: True
   epochs: 300
   augmentation: mix_transform
+#-
+#  load_best: False
+#  optimizer: Adam
+#  optimizer_params:
+#    lr: 0.0001
+#  scheduler: schedulers.Cycle_LR
+#  scheduler_params:
+#    optimizer: Adam
+#    lr_factor: 0.1
+#    cycle_len: 5
+#    cycle_factor: 2
+#    gamma: None
+#    jump: None
+#    last_epoch: -1
+#    surface: None
+#    momentum_range: None
+##    patience: 5
+##    factor: 0.5
+##    min_lr: 0.0000001
+##    verbose: True
+#  epochs: 300
+#  augmentation: mix_transform2

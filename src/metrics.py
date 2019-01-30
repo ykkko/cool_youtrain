@@ -37,3 +37,12 @@ class map3(nn.Module):
         top_3 = predicted_idxs[:, :3]
         res = mapk([[t] for t in targs.cpu().numpy()], top_3.cpu().numpy(), 3)
         return -torch.tensor(res)
+
+
+class Accuracy(nn.Module):
+    def __init__(self):
+        super(Accuracy, self).__init__()
+
+    def forward(self, preds, targs):
+        preds = np.argmax(preds.cpu().detach().numpy(), axis=1)
+        return -np.mean(preds == targs.view(-1).cpu().detach().numpy())

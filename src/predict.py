@@ -2,7 +2,7 @@ import numpy as np
 
 import argparse
 from pathlib import Path
-import pickle
+import glob
 import cv2
 import pydoc
 import torch
@@ -11,9 +11,11 @@ from tqdm import tqdm
 from dataset import TestDataset
 from transforms import test_transform
 from torch.utils.data import DataLoader
+from albumentations.torch import ToTensor
 from youtrain.utils import set_global_seeds, get_config, get_last_save
 import torchvision.transforms.functional as F
 import pandas as pd
+from scipy.misc import imread, imresize
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -42,14 +44,26 @@ class PytorchInference:
 
     def predict(self, model, loader):
         model = model.to(self.device).eval()
-
         with torch.no_grad():
             for data in loader:
+                print(type(data))
+                print(data.shape)
                 images = data.to(self.device)
                 predictions = model(images)
                 for prediction in predictions:
                     prediction = np.moveaxis(self.to_numpy(prediction), 0, -1)
                     yield prediction
+
+    def predict_on_batch(self, model, batch):
+        model = model.to(self.device).eval()
+        if isinstance(batch, np.ndarray):
+            data = ToTensor()(image=batch)['image'].permute(1, 0, 2, 3)
+        with torch.no_grad():
+            images = data.to(self.device)
+            predictions = model(images)
+            for prediction in predictions:
+                prediction = np.moveaxis(self.to_numpy(prediction), 0, -1)
+                yield prediction
 
 
 def parse_args():
@@ -59,7 +73,7 @@ def parse_args():
     return parser.parse_args()
 
 
-def main():
+if __name__ == '__main__':
     args = parse_args()
     config = get_config(args.config)
     paths = get_config(args.paths)
@@ -67,34 +81,16 @@ def main():
     model_name = config['train_params']['model']
     model = pydoc.locate(model_name)(**params['model_params'])
     model.load_state_dict(torch.load(params['weights'])['state_dict'])
-    with open('model_pipeline.pickle', 'wb+') as f:
-        pickle.dump(model, f)
-    raise NotImplemented
     paths = paths['data']
 
-    dataset = TestDataset(
-            image_dir=Path(paths['path']) / Path(paths['test_images']),
-            transform=test_transform(**config['data_params']['augmentation_params']))
-
-    loader = DataLoader(
-            dataset=dataset,
-            batch_size=16,
-            shuffle=False,
-            drop_last=False,
-            num_workers=16,
-            pin_memory=torch.cuda.is_available())
+    files = glob.glob('/mnt/hdd1/datasets/naive_data/shot_dataset/test/closeup/*.*')
+    batch = np.zeros([16, 224, 224, 3])
+    for i in range(batch.shape[0]):
+        batch[i, :, :, :] = imresize(imread(files[i]), (224, 224))
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     inferencer = PytorchInference(device)
-    ids = dataset.ids
-    predictions = []
-    for i, pred in tqdm(enumerate(inferencer.predict(model, loader)), total=len(dataset)):
-        print(np.argmax(pred))
-        predictions.append([ids[i], np.argmax(pred)])
-
-    predictions = pd.DataFrame(predictions, columns=['fname', 'preds'])
-    predictions.to_csv('preds_test.csv')
-
-
-if __name__ == '__main__':
-    main()
+    preds = inferencer.predict_on_batch(model, batch)
+    print(np.array(list(preds)))
+    # for i, pred in enumerate(preds):
+    #     print(i, ':', pred)

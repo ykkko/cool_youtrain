@@ -2,30 +2,16 @@ data_params:
   batch_size: 16
   num_workers: 16
   augmentation_params:
-    resize: 320
+    resize: 224
 
 train_params:
   name: rn18
-  model: models.MultiResnet18
+  model: models.Net34
   model_params:
-    num_filters: 16
+#    num_filters: 16
     pretrained: True
-    num_classes: 2
-  loss: losses.BCELoss2d
-  loss_params: {}
-  metrics: [losses.BCELoss2d]
-  steps_per_epoch: 2500
-  new_save: True
-#  weights:
-stages:
--
-  load_best: False
-  optimizer: Adam
-  optimizer_params:
-    lr: 0.001
-  scheduler: MultiStepLR
-  scheduler_params:
-    milestones: [ 0, 10, 20, 30]
-    gamma: 0.7
-  epochs: 300
-  augmentation: mix_transform
+    num_classes: 4
+#  weights: /mnt/hdd1/datasets/naive_data/shot_dataset/weights/rn18-shot_type/0/tt_7_0.85196.pt
+#  weights: /mnt/hdd1/datasets/naive_data/sho t_dataset/weights/weights/rn34-shot_type/0/tt_11_0.89732.pt
+#  weights: /mnt/hdd2/datasets/naive_data/shot_dataset/weights/weights/rn34-shot_type-semantic/0/tt_1_0.93056.pt
+  weights: /mnt/hdd2/datasets/naive_data/shot_dataset/weights/weights/rn34-shot_type-semantic/0/tt_13_0.93389.pt

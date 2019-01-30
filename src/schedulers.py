@@ -2,7 +2,6 @@ from torch.optim.lr_scheduler import _LRScheduler
 import numpy as np
 
 
-
 class Cycle_LR(_LRScheduler):
     def __init__(self, optimizer, lr_factor, cycle_len, cycle_factor=2, gamma=None, jump=None, \
                  last_epoch=-1, surface=None, momentum_range=None):

@@ -1553,24 +1553,24 @@ class DenseNet(nn.Module):
         x = self.features.conv0(x)
         x = self.features.norm0(x)
         x = self.features.relu0(x)
-        print(x.size())
+        # print(x.size())
         x = self.features.pool0(x)
 
         x = self.features.denseblock1(x)
-        print(x.size())
+        # print(x.size())
         x = self.features.transition1(x)
 
         x = self.features.denseblock2(x)
-        print(x.size())
+        # print(x.size())
         x = self.features.transition2(x)
 
         x = self.features.denseblock3(x)
-        print(x.size())
+        # print(x.size())
         x = self.features.transition3(x)
 
         x = self.features.denseblock4(x)
         x = self.features.norm5(x)
-        print(x.size())
+        # print(x.size())
 
         out = F.relu(x, inplace=True)
         out = F.avg_pool2d(out, kernel_size=7, stride=1).view(x.size(0), -1)
@@ -1803,4 +1803,14 @@ def SENet154(pretrained, num_classes):
     model = senet154(pretrained=pretrained, num_classes=1000)
     model.avg_pool = nn.AvgPool2d(kernel_size=4, stride=1, padding=0)
     model.last_linear = nn.Linear(2048, num_classes, bias=True)
+    return model
+
+def Net18(pretrained, num_classes):
+    model = resnet18(pretrained=pretrained)
+    model.fc = nn.Linear(512, num_classes, bias=True)
+    return model
+
+def Net34(pretrained, num_classes):
+    model = resnet34(pretrained=pretrained)
+    model.fc = nn.Linear(512, num_classes, bias=True)
     return model
