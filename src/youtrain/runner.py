@@ -1,5 +1,6 @@
 import os
 import glob
+import numpy as np
 import pydoc
 from collections import defaultdict
 from tqdm import tqdm
@@ -7,6 +8,9 @@ from tqdm import tqdm
 import torch
 import torch.nn as nn
 from torch.optim.lr_scheduler import ReduceLROnPlateau
+
+from schedulers import Cycle_LR
+from utils import onehot
 
 tqdm.monitor_interval = 0
 
@@ -21,11 +25,14 @@ class Metrics:
 
 
 class Runner:
-    def __init__(self, factory, callbacks, stages, device, fold):
+    def __init__(self, factory, callbacks, stages, device, fold, mixup, num_classes):
         self.stages = stages
         self.factory = factory
         self.device = device
         self.model = self.factory.make_model()
+        self.mixup = mixup
+        self.alpha = 0.9
+        self.num_classes = num_classes
 
         self.model = nn.DataParallel(self.model).to(device)
         self.loss = self.factory.make_loss().to(device)
@@ -50,6 +57,8 @@ class Runner:
 
             train_loader = data_factory.make_loader(stage, is_train=True)
             val_loader = data_factory.make_loader(stage, is_train=False)
+            print(train_loader)
+            print(val_loader)
 
             if i>0 and self.current_stage['load_best']:
                 weights_path = [os.path.join(self.factory.params['save_dir'], w) for w in os.listdir(self.factory.params['save_dir']) if self.factory.params['name_save'] in w]
@@ -98,7 +107,7 @@ class Runner:
 
         if is_train:
             progress_bar = tqdm(
-                enumerate(loader), total=self.factory.params['steps_per_epoch'],
+                enumerate(zip(*loader)) if self.mixup else enumerate(loader), total=self.factory.params['steps_per_epoch'],
                 desc=f"Epoch {epoch} training...", ncols=0)
         else:
             progress_bar = tqdm(
@@ -127,9 +136,24 @@ class Runner:
 
     def _make_step(self, data, is_train):
         report = {}
-        data = self.batch2device(data)
-        images = data['image']
-        labels = data['mask']
+
+        if self.mixup and is_train:
+            d_1, d_2 = [self.batch2device(x) for x in data]
+            images_1 = d_1['image']
+            images_2 = d_2['image']
+            labels_1 = d_1['mask']
+            labels_2 = d_2['mask']
+            labels_1 = onehot(labels_1, self.num_classes)
+            labels_2 = onehot(labels_2, self.num_classes)
+
+            _lambda = np.random.beta(self.alpha, self.alpha)
+            images = _lambda * images_1 + (1 - _lambda) * images_2
+            labels = (_lambda * labels_1 + (1 - _lambda) * labels_2).to(self.device)
+        else:
+            data = self.batch2device(data)
+            images = data['image']
+            labels = data['mask']
+            labels = onehot(labels, self.num_classes).to(self.device)
         
         if is_train:
             self.optimizer.zero_grad()

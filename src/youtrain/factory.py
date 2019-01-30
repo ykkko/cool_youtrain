@@ -31,6 +31,9 @@ class Factory:
 
     @staticmethod
     def make_scheduler(optimizer, stage):
+        print(getattr(torch.optim.lr_scheduler, stage['scheduler'])(
+            optimizer=optimizer,
+            **stage['scheduler_params']))
         return getattr(torch.optim.lr_scheduler, stage['scheduler'])(
             optimizer=optimizer,
             **stage['scheduler_params'])

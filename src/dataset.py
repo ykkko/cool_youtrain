@@ -1,15 +1,17 @@
-import cv2
 import os
 import glob
-import torch
-import pandas as pd
+import cv2
 import numpy as np
+import pandas as pd
+from copy import deepcopy
 from pathlib import Path
+
 import torch
 from torch.utils.data import Dataset, DataLoader
-from youtrain.factory import DataFactory
-from transforms import test_transform, mix_transform, mix_transform2
 from albumentations.torch import ToTensor
+
+from transforms import test_transform, mix_transform, mix_transform2
+from youtrain.factory import DataFactory
 from samplers import WeightedSampler
 
 
@@ -60,8 +62,7 @@ class TaskDataFactory(DataFactory):
         super().__init__(params, paths, **kwargs)
         self.fold = kwargs['fold']
         self._folds = None
-        # self.class_weights = {0: 1065, 1: 1864, 2: 217, 3: 461}
-        # self.class_weights = {0: 26701, 1: 37250, 2: 5752, 3: 1639}
+        self.mixup = kwargs['mixup']
         self.class_weights = {0: 814, 1: 3072, 2: 1084, 3: 1354}
 
     @property
@@ -90,15 +91,19 @@ class TaskDataFactory(DataFactory):
     def make_loader(self, stage, is_train=False):
         dataset = self.make_dataset(stage, is_train)
         sampler = WeightedSampler(dataset) if is_train else None
-        return DataLoader(
-            dataset=dataset,
-            batch_size=self.params['batch_size'],
-            shuffle=not bool(sampler),
-            drop_last=is_train,
-            num_workers=self.params['num_workers'],
-            pin_memory=torch.cuda.is_available(),
-            sampler=sampler
-        )
+        data_loader = DataLoader(dataset=dataset,
+                                 batch_size=self.params['batch_size'],
+                                 shuffle=not bool(sampler),
+                                 drop_last=is_train,
+                                 num_workers=self.params['num_workers'],
+                                 pin_memory=torch.cuda.is_available(),
+                                 sampler=sampler)
+        if self.mixup and is_train:
+            train_loader_1 = deepcopy(data_loader)
+            train_loader_2 = deepcopy(data_loader)
+            return train_loader_1, train_loader_2
+        else:
+            return data_loader
 
     @property
     def folds(self):

@@ -45,4 +45,5 @@ class Accuracy(nn.Module):
 
     def forward(self, preds, targs):
         preds = np.argmax(preds.cpu().detach().numpy(), axis=1)
-        return -np.mean(preds == targs.view(-1).cpu().detach().numpy())
+        # return -np.mean(preds == targs.view(-1).cpu().detach().numpy())
+        return -np.mean(preds == np.argmax(targs.cpu().detach().numpy(), axis=1))

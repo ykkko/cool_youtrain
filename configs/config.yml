@@ -1,5 +1,5 @@
 data_params:
-  batch_size: 32
+  batch_size: 16
   num_workers: 8
   augmentation_params:
     resize: 224
@@ -10,12 +10,14 @@ train_params:
   model_params:
     pretrained: True
     num_classes: 4
-  loss: losses.CrossEntropyLoss
+  loss: losses.MixupCrossEntropyLoss
   loss_params: {}
+  mixup: True
   metrics: [metrics.Accuracy]
-  steps_per_epoch: 2500
+  steps_per_epoch: 250
   new_save: True
-#  weights: /mnt/hdd2/datasets/naive_data/shot_dataset/weights/weights/rn34-shot_type-wedding_dataset/0/tt_1_0.79849.pt
+#  weights: /mnt/hdd2/datasets/naive_data/shot_dataset/weights/weights/rn34-shot_type_2/0/tt_6_0.86875.pt
+
 stages:
 -
   load_best: False
@@ -28,27 +30,18 @@ stages:
     factor: 0.1
     min_lr: 0.0000001
     verbose: True
-  epochs: 300
+  epochs: 10
   augmentation: mix_transform
 #-
 #  load_best: False
 #  optimizer: Adam
 #  optimizer_params:
 #    lr: 0.0001
-#  scheduler: schedulers.Cycle_LR
+#  scheduler: ReduceLROnPlateau
 #  scheduler_params:
-#    optimizer: Adam
-#    lr_factor: 0.1
-#    cycle_len: 5
-#    cycle_factor: 2
-#    gamma: None
-#    jump: None
-#    last_epoch: -1
-#    surface: None
-#    momentum_range: None
-##    patience: 5
-##    factor: 0.5
-##    min_lr: 0.0000001
-##    verbose: True
-#  epochs: 300
+#    patience: 5
+#    factor: 0.1
+#    min_lr: 0.0000001
+#    verbose: True
+#  epochs: 100
 #  augmentation: mix_transform2

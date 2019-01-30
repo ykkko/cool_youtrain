@@ -28,11 +28,11 @@ def parse_args():
     return parser.parse_args()
 
 
-def create_callbacks(name, dumps, name_save, monitor_metric):
+def create_callbacks(name, dumps, name_save, monitor_metric, config_path):
     log_dir = Path(dumps['path']) / dumps['logs'] / name
     save_dir = Path(dumps['path']) / dumps['weights'] / name
     callbacks = Callbacks([
-        Logger(log_dir),
+        Logger(log_dir, config_path),
         ModelSaver(
             checkpoint=True,
             metric_name=monitor_metric,
@@ -50,36 +50,46 @@ def main():
     args = parse_args()
     # set_global_seeds(42)
     config = get_config(args.config)
-
-    print(config)
-    print()
+    print(config, '\n')
 
     config['train_params']['name'] = f'{config["train_params"]["name"]}/{args.fold}'
     paths = get_config(args.paths)
-
-    print(paths)
-    print()
+    print(paths, '\n')
 
     if config['train_params']['new_save']:
-        paths["dumps"]['name_save'] = f'{paths["dumps"]["name_save"]}_{get_last_save(Path(paths["dumps"]["path"]) / paths["dumps"]["weights"] / config["train_params"]["name"]) + 1}'
+        name_save = paths["dumps"]["name_save"]
+        last_name_save = get_last_save(Path(paths["dumps"]["path"]) /
+                                       paths["dumps"]["weights"] /
+                                       config["train_params"]["name"])
+        paths["dumps"]['name_save'] = f'{name_save}_{last_name_save + 1}'
+        print(paths["dumps"]['name_save'])
     else:
         paths["dumps"]['name_save'] = paths['name_save']
 
     config['train_params']['name_save'] = paths["dumps"]['name_save']
-    config['train_params']['save_dir'] = Path(paths['dumps']['path']) / paths['dumps']['weights'] / config['train_params']['name']
+    config['train_params']['save_dir'] = Path(paths['dumps']['path']) / \
+                                         paths['dumps']['weights'] / \
+                                         config['train_params']['name']
     factory = Factory(config['train_params'])
 
-    data_factory = TaskDataFactory(config['data_params'], paths['data'], fold=args.fold)
+    data_factory = TaskDataFactory(config['data_params'], paths['data'],
+                                   fold=args.fold, mixup=config['train_params']['mixup'])
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    callbacks = create_callbacks(config['train_params']['name'], paths['dumps'], paths["dumps"]["name_save"], config['train_params']['metrics'][-1])
+    callbacks = create_callbacks(name=config['train_params']['name'],
+                                 dumps=paths['dumps'],
+                                 name_save=paths["dumps"]["name_save"],
+                                 monitor_metric=config['train_params']['metrics'][-1],
+                                 config_path=args.config)
 
     trainer = Runner(
         stages=config['stages'],
         factory=factory,
         callbacks=callbacks,
         device=device,
-        fold=args.fold
+        fold=args.fold,
+        mixup=config['train_params']['mixup'],
+        num_classes=config['train_params']['model_params']['num_classes']
     )
 
     trainer.fit(data_factory)

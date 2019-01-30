@@ -1,6 +1,7 @@
 import logging
 import os
 from copy import deepcopy
+from shutil import copyfile
 
 import torch
 from tensorboardX import SummaryWriter
@@ -133,7 +134,8 @@ class ModelSaver(Callback):
                     current_score = float(self.current_path.split('_')[-1])
                     if current_score < self.threshold:
                         os.remove(self.current_path + '.pt')
-                self.current_path = '_'.join(self.current_path.split('_')[:-1]) + '_{:.5f}'.format(abs(self.metrics.best_score))
+                self.current_path = '_'.join(self.current_path.split('_')[:-1]) + \
+                                    '_{:.5f}'.format(abs(self.metrics.best_score))
                 if self.checkpoint:
                     self.save_checkpoint(epoch=epoch, path=self.current_path + '.pt', score=score)
                 else:
@@ -167,13 +169,16 @@ class TensorBoard(Callback):
 
 
 class Logger(Callback):
-    def __init__(self, log_dir):
+    def __init__(self, log_dir, config_path):
         super().__init__()
         self.log_dir = log_dir
+        self.config_path = config_path
+        # print(self.log_dir, self.config_path)
         self.logger = None
 
     def on_train_begin(self):
         os.makedirs(self.log_dir, exist_ok=True)
+        # copyfile(self.config_path, os.path.join())
         self.logger = self._get_logger(str(self.log_dir / 'logs.txt'))
         self.logger.info(f'Starting training with params:\n{self.runner.factory.params}\n\n')
 

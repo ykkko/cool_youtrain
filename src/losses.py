@@ -5,6 +5,7 @@ from torch.autograd import Variable
 import numpy as np
 import pydoc
 
+
 class CrossEntropyLoss(nn.Module):
     def __init__(self, weight=None, size_average=True):
         super(CrossEntropyLoss, self).__init__()
@@ -13,6 +14,27 @@ class CrossEntropyLoss(nn.Module):
     def forward(self, logits, targets):
         targets = targets.type(torch.cuda.LongTensor).view(-1)
         return self.loss(logits, targets)
+
+
+class MixupCrossEntropyLoss(nn.Module):
+    def __init__(self, weight=None, size_average=True):
+        super(MixupCrossEntropyLoss, self).__init__()
+        self.size_average = size_average
+
+    def forward(self, input, target):
+        """
+        in PyTorch's cross entropy, targets are expected to be labels
+        so to predict probabilities this loss is needed
+        suppose q is the target and p is the input
+        loss(p, q) = -\sum_i q_i \log p_i
+        """
+        assert input.size() == target.size()
+        assert isinstance(input, Variable) and isinstance(target, Variable)
+        input = torch.log(F.softmax(input, dim=1).clamp(1e-5, 1))
+        # input = input - torch.log(torch.sum(torch.exp(input), dim=1)).view(-1, 1)
+
+        loss = - torch.sum(input * target)
+        return loss / input.size()[0] if self.size_average else loss
 
 
 class BCELoss2d(nn.Module):
