@@ -25,13 +25,11 @@ class Metrics:
 
 
 class Runner:
-    def __init__(self, factory, callbacks, stages, device, fold, mixup, num_classes):
+    def __init__(self, factory, callbacks, stages, device, fold, num_classes):
         self.stages = stages
         self.factory = factory
         self.device = device
         self.model = self.factory.make_model()
-        self.mixup = mixup
-        self.alpha = 0.9
         self.num_classes = num_classes
 
         self.model = nn.DataParallel(self.model).to(device)
@@ -107,7 +105,7 @@ class Runner:
 
         if is_train:
             progress_bar = tqdm(
-                enumerate(zip(*loader)) if self.mixup else enumerate(loader), total=self.factory.params['steps_per_epoch'],
+                enumerate(loader), total=self.factory.params['steps_per_epoch'],
                 desc=f"Epoch {epoch} training...", ncols=0)
         else:
             progress_bar = tqdm(
@@ -137,24 +135,11 @@ class Runner:
     def _make_step(self, data, is_train):
         report = {}
 
-        if self.mixup and is_train:
-            d_1, d_2 = [self.batch2device(x) for x in data]
-            images_1 = d_1['image']
-            images_2 = d_2['image']
-            labels_1 = d_1['mask']
-            labels_2 = d_2['mask']
-            labels_1 = onehot(labels_1, self.num_classes)
-            labels_2 = onehot(labels_2, self.num_classes)
+        data = self.batch2device(data)
+        images = data['image']
+        labels = data['mask']
+        labels = labels.view(len(images), -1)
 
-            _lambda = np.random.beta(self.alpha, self.alpha)
-            images = _lambda * images_1 + (1 - _lambda) * images_2
-            labels = (_lambda * labels_1 + (1 - _lambda) * labels_2).to(self.device)
-        else:
-            data = self.batch2device(data)
-            images = data['image']
-            labels = data['mask']
-            labels = onehot(labels, self.num_classes).to(self.device)
-        
         if is_train:
             self.optimizer.zero_grad()
 

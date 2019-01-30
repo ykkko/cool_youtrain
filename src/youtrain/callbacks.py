@@ -1,7 +1,7 @@
 import logging
 import os
 from copy import deepcopy
-from shutil import copyfile
+import shutil
 
 import torch
 from tensorboardX import SummaryWriter
@@ -95,11 +95,12 @@ class Callbacks(Callback):
 
 class ModelSaver(Callback):
     def __init__(
-            self, save_dir, save_every, save_name,
+            self, code_dir, save_dir, save_every, save_name,
             best_only=True, metric_name='loss', checkpoint=True, threshold=0.3):
         super().__init__()
         self.checkpoint = checkpoint
         self.metric_name = metric_name
+        self.code_dir = code_dir
         self.save_dir = save_dir
         self.save_every = save_every
         self.threshold = threshold
@@ -111,6 +112,10 @@ class ModelSaver(Callback):
     def on_train_begin(self):
         os.makedirs(self.save_dir, exist_ok=True)
         self.current_path = str(self.save_dir / self.save_name) + '_0.0'
+        if os.path.exists(self.code_dir):
+            shutil.rmtree(self.code_dir)
+        shutil.copytree(os.getcwd(), self.code_dir)
+        print(f'Code was saved at {self.code_dir}')
 
     def save_checkpoint(self, epoch, path, score=None):
         torch.save({
@@ -169,16 +174,14 @@ class TensorBoard(Callback):
 
 
 class Logger(Callback):
-    def __init__(self, log_dir, config_path):
+    def __init__(self, log_dir):
         super().__init__()
         self.log_dir = log_dir
-        self.config_path = config_path
-        # print(self.log_dir, self.config_path)
         self.logger = None
 
     def on_train_begin(self):
         os.makedirs(self.log_dir, exist_ok=True)
-        # copyfile(self.config_path, os.path.join())
+        # shutil.copyfile(self.config_path, os.path.join())
         self.logger = self._get_logger(str(self.log_dir / 'logs.txt'))
         self.logger.info(f'Starting training with params:\n{self.runner.factory.params}\n\n')
 

@@ -16,6 +16,7 @@
 dumps:
   path: /mnt/hdd2/datasets/naive_data/shot_dataset/weights/    # path to weights dir
   weights: weights                  # name of weights dir
+  code: code
   logs: logs                        # name of logs dir
   name_save: tt                     # name to save models
 

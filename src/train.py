@@ -28,19 +28,22 @@ def parse_args():
     return parser.parse_args()
 
 
-def create_callbacks(name, dumps, name_save, monitor_metric, config_path):
+def create_callbacks(name, dumps, name_save, monitor_metric):
     log_dir = Path(dumps['path']) / dumps['logs'] / name
     save_dir = Path(dumps['path']) / dumps['weights'] / name
+    code_dir = Path(dumps['path']) / dumps['code'] / name.split('/')[0] / name_save
     callbacks = Callbacks([
-        Logger(log_dir, config_path),
+        Logger(log_dir),
         ModelSaver(
             checkpoint=True,
             metric_name=monitor_metric,
+            code_dir=code_dir,
             save_dir=save_dir,
             save_every=1,
             save_name=name_save,
             best_only=True,
-            threshold=0.7),
+            threshold=0.7
+        ),
         TensorBoard(log_dir)
     ])
     return callbacks
@@ -73,14 +76,14 @@ def main():
     factory = Factory(config['train_params'])
 
     data_factory = TaskDataFactory(config['data_params'], paths['data'],
-                                   fold=args.fold, mixup=config['train_params']['mixup'])
+                                   fold=args.fold,
+                                   num_classes=config['train_params']['model_params']['num_classes'])
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     callbacks = create_callbacks(name=config['train_params']['name'],
                                  dumps=paths['dumps'],
                                  name_save=paths["dumps"]["name_save"],
-                                 monitor_metric=config['train_params']['metrics'][-1],
-                                 config_path=args.config)
+                                 monitor_metric=config['train_params']['metrics'][-1])
 
     trainer = Runner(
         stages=config['stages'],
@@ -88,7 +91,6 @@ def main():
         callbacks=callbacks,
         device=device,
         fold=args.fold,
-        mixup=config['train_params']['mixup'],
         num_classes=config['train_params']['model_params']['num_classes']
     )
 

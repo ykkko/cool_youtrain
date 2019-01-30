@@ -12,9 +12,8 @@ train_params:
     num_classes: 4
   loss: losses.MixupCrossEntropyLoss
   loss_params: {}
-  mixup: True
   metrics: [metrics.Accuracy]
-  steps_per_epoch: 250
+  steps_per_epoch: 5000
   new_save: True
 #  weights: /mnt/hdd2/datasets/naive_data/shot_dataset/weights/weights/rn34-shot_type_2/0/tt_6_0.86875.pt
 
@@ -30,7 +29,7 @@ stages:
     factor: 0.1
     min_lr: 0.0000001
     verbose: True
-  epochs: 10
+  epochs: 100
   augmentation: mix_transform
 #-
 #  load_best: False

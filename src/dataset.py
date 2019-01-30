@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 from copy import deepcopy
 from pathlib import Path
+from random import randint
 
 import torch
 from torch.utils.data import Dataset, DataLoader
@@ -13,6 +14,7 @@ from albumentations.torch import ToTensor
 from transforms import test_transform, mix_transform, mix_transform2
 from youtrain.factory import DataFactory
 from samplers import WeightedSampler
+from utils import onehot
 
 
 class BaseDataset(Dataset):
@@ -28,33 +30,63 @@ class BaseDataset(Dataset):
 
 
 class TrainDataset(BaseDataset):
-    def __init__(self, ids, transform):
+    def __init__(self, ids, transform, num_classes):
         super().__init__(ids, transform)
+        self.num_classes = num_classes
+        self.mapping = {'2_long': 0, '3_medium': 1, '4_closeup': 2, '5_detail': 3}
+        self.alpha = 1
+        self.sampler = WeightedSampler(self)
+
+    def __getitem__(self, index):
+        if isinstance(index, torch.Tensor):
+            index = index.item()
+
+        line_1 = self.ids.iloc[index]
+        label_1 = np.array([self.mapping[line_1['label']]])
+
+        while True:
+            idx = randint(0, self.__len__() - 1)    # TODO: generate idx with self.sampler
+            line_2 = self.ids.iloc[idx]
+            label_2 = np.array([self.mapping[line_2['label']]])
+            if label_1 != label_2:
+                break
+
+        image_1 = cv2.imread(line_1['path'])
+        image_2 = cv2.imread(line_2['path'])
+        image_1 = self.transform(image=image_1)['image']
+        image_2 = self.transform(image=image_2)['image']
+
+        label_1 = ToTensor()(image=label_1)['image']
+        label_2 = ToTensor()(image=label_2)['image']
+        label_1 = onehot(label_1, self.num_classes)
+        label_2 = onehot(label_2, self.num_classes)
+
+        _lambda = np.random.beta(self.alpha, self.alpha)
+        images = _lambda * image_1 + (1 - _lambda) * image_2
+        labels = _lambda * label_1 + (1 - _lambda) * label_2
+
+        return {'image': images, 'mask': labels}
+
+
+class ValDataset(BaseDataset):
+    def __init__(self, ids, transform, num_classes):
+        super().__init__(ids, transform)
+        self.num_classes = num_classes
         self.mapping = {'2_long': 0, '3_medium': 1, '4_closeup': 2, '5_detail': 3}
 
     def __getitem__(self, index):
         if isinstance(index, torch.Tensor):
             index = index.item()
         line = self.ids.iloc[index]
+
         image = cv2.imread(line['path'])
-        result = self.transform(image=image)
-        mask = np.array([self.mapping[line['label']]])
-        result['mask'] = ToTensor()(image=mask)['image']
-        return result
+        image = self.transform(image=image)['image']
 
+        label = np.array([self.mapping[line['label']]])
+        label = ToTensor()(image=label)['image']
+        label = onehot(label, self.num_classes)
 
-class TestDataset(BaseDataset):
-    def __init__(self, image_dir, transform):
-        ids = glob.glob(os.path.join(image_dir, '**/*.*'), recursive=True)
-        super().__init__(ids, transform)
-        self.transform = transform
-        self.ids = ids
-        self.image_dir = image_dir
-
-    def __getitem__(self, index):
-        name = self.ids[index]
-        image = cv2.imread(name)
-        return self.transform(image=image)['image']
+        return {'image': image, 'mask': label}
 
 
 class TaskDataFactory(DataFactory):
@@ -62,8 +94,7 @@ class TaskDataFactory(DataFactory):
         super().__init__(params, paths, **kwargs)
         self.fold = kwargs['fold']
         self._folds = None
-        self.mixup = kwargs['mixup']
-        self.class_weights = {0: 814, 1: 3072, 2: 1084, 3: 1354}
+        self.num_classes = kwargs['num_classes']
 
     @property
     def data_path(self):
@@ -84,26 +115,23 @@ class TaskDataFactory(DataFactory):
     def make_dataset(self, stage, is_train):
         transform = self.make_transform(stage, is_train)
         ids = self.train_ids if is_train else self.val_ids
-        return TrainDataset(
-            ids=ids,
-            transform=transform)
+        if is_train:
+            return TrainDataset(ids=ids, transform=transform, num_classes=self.num_classes)
+        else:
+            return ValDataset(ids=ids, transform=transform, num_classes=self.num_classes)
 
     def make_loader(self, stage, is_train=False):
         dataset = self.make_dataset(stage, is_train)
         sampler = WeightedSampler(dataset) if is_train else None
-        data_loader = DataLoader(dataset=dataset,
-                                 batch_size=self.params['batch_size'],
-                                 shuffle=not bool(sampler),
-                                 drop_last=is_train,
-                                 num_workers=self.params['num_workers'],
-                                 pin_memory=torch.cuda.is_available(),
-                                 sampler=sampler)
-        if self.mixup and is_train:
-            train_loader_1 = deepcopy(data_loader)
-            train_loader_2 = deepcopy(data_loader)
-            return train_loader_1, train_loader_2
-        else:
-            return data_loader
+        return DataLoader(
+            dataset=dataset,
+            batch_size=self.params['batch_size'],
+            shuffle=not bool(sampler),
+            drop_last=is_train,
+            num_workers=self.params['num_workers'],
+            pin_memory=torch.cuda.is_available(),
+            sampler=sampler
+        )
 
     @property
     def folds(self):
