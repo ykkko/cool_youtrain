@@ -44,7 +44,7 @@ def create_callbacks(name, dumps, name_save, monitor_metric):
             best_only=True,
             threshold=0.7
         ),
-        TensorBoard(log_dir)
+        # TensorBoard(log_dir)
     ])
     return callbacks
 

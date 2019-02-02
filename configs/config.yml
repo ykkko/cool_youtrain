@@ -15,18 +15,19 @@ train_params:
   metrics: [metrics.Accuracy]
   steps_per_epoch: 5000
   new_save: True
-#  weights: /mnt/hdd2/datasets/naive_data/shot_dataset/weights/weights/rn34-shot_type_2/0/tt_6_0.86875.pt
+#  weights: /mnt/hdd2/datasets/naive_data/shot_dataset/weights/weights/rn34-shot_type_2/0/tt_20_0.86376.pt
 
 stages:
 -
   load_best: False
+#  optimizer: SGD
   optimizer: Adam
   optimizer_params:
-    lr: 0.0001
+    lr: 0.00001
   scheduler: ReduceLROnPlateau
   scheduler_params:
-    patience: 5
-    factor: 0.1
+    patience: 3
+    factor: 0.5
     min_lr: 0.0000001
     verbose: True
   epochs: 100

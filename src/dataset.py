@@ -1,11 +1,7 @@
-import os
-import glob
 import cv2
 import numpy as np
 import pandas as pd
-from copy import deepcopy
 from pathlib import Path
-from random import randint
 
 import torch
 from torch.utils.data import Dataset, DataLoader
@@ -34,8 +30,11 @@ class TrainDataset(BaseDataset):
         super().__init__(ids, transform)
         self.num_classes = num_classes
         self.mapping = {'2_long': 0, '3_medium': 1, '4_closeup': 2, '5_detail': 3}
-        self.alpha = 1
         self.sampler = WeightedSampler(self)
+
+        self.mixup = True
+        self.mixup_p = 0.2
+        self.alpha = 1
 
     def __getitem__(self, index):
         if isinstance(index, torch.Tensor):
@@ -43,27 +42,33 @@ class TrainDataset(BaseDataset):
 
         line_1 = self.ids.iloc[index]
         label_1 = np.array([self.mapping[line_1['label']]])
-
-        while True:
-            idx = randint(0, self.__len__() - 1)    # TODO: generate idx with self.sampler
-            line_2 = self.ids.iloc[idx]
-            label_2 = np.array([self.mapping[line_2['label']]])
-            if label_1 != label_2:
-                break
-
         image_1 = cv2.imread(line_1['path'])
-        image_2 = cv2.imread(line_2['path'])
-        image_1 = self.transform(image=image_1)['image']
-        image_2 = self.transform(image=image_2)['image']
 
-        label_1 = ToTensor()(image=label_1)['image']
-        label_2 = ToTensor()(image=label_2)['image']
-        label_1 = onehot(label_1, self.num_classes)
-        label_2 = onehot(label_2, self.num_classes)
+        if self.mixup and np.random.uniform(0, 1) > self.mixup_p:
+            while True:
+                idx = next(iter(self.sampler)).item()    # generate idx with self.sampler
+                line_2 = self.ids.iloc[idx]
+                label_2 = np.array([self.mapping[line_2['label']]])
+                if label_1 != label_2:
+                    break
 
-        _lambda = np.random.beta(self.alpha, self.alpha)
-        images = _lambda * image_1 + (1 - _lambda) * image_2
-        labels = _lambda * label_1 + (1 - _lambda) * label_2
+            image_2 = cv2.imread(line_2['path'])
+            image_1 = self.transform(image=image_1)['image']
+            image_2 = self.transform(image=image_2)['image']
+
+            label_1 = ToTensor()(image=label_1)['image']
+            label_2 = ToTensor()(image=label_2)['image']
+            label_1 = onehot(label_1, self.num_classes)
+            label_2 = onehot(label_2, self.num_classes)
+
+            _lambda = np.random.beta(self.alpha, self.alpha)
+            images = _lambda * image_1 + (1 - _lambda) * image_2
+            labels = _lambda * label_1 + (1 - _lambda) * label_2
+
+        else:
+            images = self.transform(image=image_1)['image']
+            label_1 = ToTensor()(image=label_1)['image']
+            labels = onehot(label_1, self.num_classes)
 
         return {'image': images, 'mask': labels}
 
@@ -73,6 +78,29 @@ class ValDataset(BaseDataset):
         super().__init__(ids, transform)
         self.num_classes = num_classes
         self.mapping = {'2_long': 0, '3_medium': 1, '4_closeup': 2, '5_detail': 3}
+        self.ids = pd.read_csv('/mnt/hdd2/datasets/naive_data/shot_dataset/shot_total_bigger/folds_val.csv')
+
+    def __getitem__(self, index):
+        if isinstance(index, torch.Tensor):
+            index = index.item()
+        line = self.ids.iloc[index]
+
+        image = cv2.imread(line['path'])
+        image = self.transform(image=image)['image']
+
+        label = np.array([self.mapping[line['label']]])
+        label = ToTensor()(image=label)['image']
+        label = onehot(label, self.num_classes)
+
+        return {'image': image, 'mask': label}
+
+
+class BadVideoValDataset(BaseDataset):
+    def __init__(self, ids, transform, num_classes):
+        super().__init__(ids, transform)
+        self.num_classes = num_classes
+        self.mapping = {'2_long': 0, '3_medium': 1, '4_closeup': 2, '5_detail': 3}
+        self.ids = pd.read_csv('/mnt/hdd2/datasets/naive_data/shot_dataset/shot_total_bigger/bad_video_folds_val.csv')
 
     def __getitem__(self, index):
         if isinstance(index, torch.Tensor):
@@ -118,7 +146,8 @@ class TaskDataFactory(DataFactory):
         if is_train:
             return TrainDataset(ids=ids, transform=transform, num_classes=self.num_classes)
         else:
-            return ValDataset(ids=ids, transform=transform, num_classes=self.num_classes)
+            # return ValDataset(ids=ids, transform=transform, num_classes=self.num_classes)
+            return BadVideoValDataset(ids=ids, transform=transform, num_classes=self.num_classes)
 
     def make_loader(self, stage, is_train=False):
         dataset = self.make_dataset(stage, is_train)
@@ -136,12 +165,13 @@ class TaskDataFactory(DataFactory):
     @property
     def folds(self):
         if self._folds is None:
+            print(self.data_path,self.paths['folds'])
             self._folds = pd.read_csv(self.data_path / self.paths['folds'])
         return self._folds
 
     @property
     def train_ids(self):
-        return self.folds.loc[self.folds['fold'] != self.fold]
+        return self.folds#.loc[self.folds['fold'] != self.fold]
 
     @property
     def val_ids(self):

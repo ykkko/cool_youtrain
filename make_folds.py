@@ -1,10 +1,24 @@
 import os
 import glob
+import argparse
 import numpy as np
 import pandas as pd
 
 
 def make_fold_csv(dataset_root, dst_path):
+    """
+    Make fold file for dir with class's subfolders:
+
+    train_set
+    |-- class_1
+    |-- class_2
+    `-- class_3
+
+    :param dataset_root:
+    :param dst_path:
+    :return:
+    """
+
     filenames = glob.glob(os.path.join(dataset_root, '**/*.*'))
     val_part = 0.2
 
@@ -28,14 +42,35 @@ def make_fold_csv(dataset_root, dst_path):
     df.to_csv(dst_path)
 
 
+def change_path(df_path, new_path, dst_path=None):
+    """
+
+    :param df_path:
+    :param path2change:
+    :return:
+    """
+    df = pd.read_csv(df_path)
+    df['path'] = df['path'].map(lambda x: os.path.join(new_path, os.path.basename(x)))
+    df.to_csv(dst_path if dst_path else df_path)
+
+
 def check_value_counts(path):
     check_folds = pd.read_csv(path)
     for label in check_folds['label'].unique():
         print(label, '\n', check_folds[check_folds['label'] == label]['fold'].value_counts())
 
 
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--root', type=str)
+    parser.add_argument('--fold_path', type=str)
+    # parser.add_argument('--')
+    return parser.parse_args()
+
+
 if __name__ == '__main__':
-    dataset_root = '/mnt/hdd2/datasets/naive_data/shot_dataset/shot_total_bigger/train'
-    dst_path = '/mnt/hdd2/datasets/naive_data/shot_dataset/shot_total_bigger/folds.csv'
-    make_fold_csv(dataset_root, dst_path)
-    check_value_counts(dst_path)
+    args = parse_args()
+    # args.root = '/mnt/hdd2/datasets/naive_data/shot_dataset/shot_total_bigger/fixed_train'
+    # args.fold_path = '/mnt/hdd2/datasets/naive_data/shot_dataset/shot_total_bigger/folds_fixed_train.csv'
+    make_fold_csv(args.root, args.fold_path)
+    check_value_counts(args.fold_path)
