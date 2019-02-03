@@ -1814,3 +1814,9 @@ def Net34(pretrained, num_classes):
     model = resnet34(pretrained=pretrained)
     model.fc = nn.Linear(512, num_classes, bias=True)
     return model
+
+def Resnet34_Shot(pretrained, num_classes):
+    model = resnet34(pretrained=pretrained)
+    model.avgpool = nn.AdaptiveAvgPool2d((1, 1))
+    model.fc = nn.Linear(512, num_classes, bias=True)
+    return model

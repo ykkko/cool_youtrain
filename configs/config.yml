@@ -6,7 +6,7 @@ data_params:
 
 train_params:
   name: rn34-shot_type_2
-  model: models.Net34
+  model: models_legacy.Net34
   model_params:
     pretrained: True
     num_classes: 4

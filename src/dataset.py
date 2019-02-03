@@ -2,6 +2,8 @@ import cv2
 import numpy as np
 import pandas as pd
 from pathlib import Path
+import os
+import glob
 
 import torch
 from torch.utils.data import Dataset, DataLoader
@@ -100,7 +102,7 @@ class BadVideoValDataset(BaseDataset):
         super().__init__(ids, transform)
         self.num_classes = num_classes
         self.mapping = {'2_long': 0, '3_medium': 1, '4_closeup': 2, '5_detail': 3}
-        self.ids = pd.read_csv('/mnt/hdd2/datasets/naive_data/shot_dataset/shot_total_bigger/bad_video_folds_val.csv')
+        # self.ids = pd.read_csv('/mnt/hdd2/datasets/naive_data/shot_dataset/shot_total_bigger/bad_video_folds_val.csv')
 
     def __getitem__(self, index):
         if isinstance(index, torch.Tensor):
@@ -115,6 +117,23 @@ class BadVideoValDataset(BaseDataset):
         label = onehot(label, self.num_classes)
 
         return {'image': image, 'mask': label}
+
+
+class TestDataset(BaseDataset):
+    def __init__(self, image_dir, transform):
+        self.ids = glob.glob(os.path.join(image_dir, '*.*'))
+        super().__init__(self.ids, transform)
+        self.mapping = {'2_long': 0, '3_medium': 1, '4_closeup': 2, '5_detail': 3}
+
+    def __getitem__(self, index):
+        if isinstance(index, torch.Tensor):
+            index = index.item()
+        path = self.ids[index]
+        image = cv2.imread(path)
+        image = self.transform(image=image)['image']
+        print(image)
+        print(path)
+        return torch.stack([image])
 
 
 class TaskDataFactory(DataFactory):

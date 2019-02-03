@@ -5,13 +5,14 @@ data_params:
     resize: 224
 
 train_params:
-  name: rn18
-  model: models.Net34
+  name: rn34-shot_type_2
+  model: model_zoo.classification.resnet.Resnet34_Inplanes
   model_params:
-#    num_filters: 16
     pretrained: True
     num_classes: 4
+    in_planes: 512
 #  weights: /mnt/hdd1/datasets/naive_data/shot_dataset/weights/rn18-shot_type/0/tt_7_0.85196.pt
 #  weights: /mnt/hdd1/datasets/naive_data/sho t_dataset/weights/weights/rn34-shot_type/0/tt_11_0.89732.pt
 #  weights: /mnt/hdd2/datasets/naive_data/shot_dataset/weights/weights/rn34-shot_type-semantic/0/tt_1_0.93056.pt
-  weights: /mnt/hdd2/datasets/naive_data/shot_dataset/weights/weights/rn34-shot_type-semantic/0/tt_13_0.93389.pt
+#  weights: /mnt/hdd2/datasets/naive_data/shot_dataset/weights/weights/rn34-shot_type-semantic/0/tt_13_0.93389.pt
+  weights: C:\NAIVE\weights\rn34-shot_type_2\tt_32_0.89453.pt

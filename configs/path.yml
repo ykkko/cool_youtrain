@@ -9,6 +9,7 @@ data:
   path: /mnt/hdd2/datasets/naive_data/shot_dataset/shot_total_bigger/  # path to data directory
   train_images: fixed_train/   # dir to train images
   val_images: val/
-  test_images: testset/  # dir to test
+#  test_images: testset/  # dir to test
+  test_images: C:\NAIVE\test_videos\3_medium
   folds: fixed_folds.csv
   predictions_path: preds.csv       # predictions name

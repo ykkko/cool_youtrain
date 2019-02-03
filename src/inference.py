@@ -2,7 +2,6 @@ import numpy as np
 
 import argparse
 from pathlib import Path
-import pickle
 import cv2
 import pydoc
 import torch
@@ -67,9 +66,6 @@ def main():
     model_name = config['train_params']['model']
     model = pydoc.locate(model_name)(**params['model_params'])
     model.load_state_dict(torch.load(params['weights'])['state_dict'])
-    with open('model_pipeline.pickle', 'wb+') as f:
-        pickle.dump(model, f)
-    raise NotImplemented
     paths = paths['data']
 
     dataset = TestDataset(
