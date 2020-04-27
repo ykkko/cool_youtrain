@@ -1820,3 +1820,8 @@ def Resnet34_Shot(pretrained, num_classes):
     model.avgpool = nn.AdaptiveAvgPool2d((1, 1))
     model.fc = nn.Linear(512, num_classes, bias=True)
     return model
+
+def Densenet121_Shot(pretrained, num_classes):
+    model = densenet121(pretrained=pretrained)
+    model.fc = nn.Linear(512, num_classes, bias=True)
+    return model

@@ -35,8 +35,8 @@ class TrainDataset(BaseDataset):
         self.sampler = WeightedSampler(self)
 
         self.mixup = True
-        self.mixup_p = 0.2
-        self.alpha = 1
+        self.mixup_p = 0.1
+        self.alpha = 0.5
 
     def __getitem__(self, index):
         if isinstance(index, torch.Tensor):
@@ -77,10 +77,10 @@ class TrainDataset(BaseDataset):
 
 class ValDataset(BaseDataset):
     def __init__(self, ids, transform, num_classes):
-        super().__init__(ids, transform)
+        self.ids = pd.read_csv('/mnt/hdd2/datasets/naive_data/shot_dataset/shot_total_bigger/folds_val.csv')
+        super().__init__(self.ids, transform)
         self.num_classes = num_classes
         self.mapping = {'2_long': 0, '3_medium': 1, '4_closeup': 2, '5_detail': 3}
-        self.ids = pd.read_csv('/mnt/hdd2/datasets/naive_data/shot_dataset/shot_total_bigger/folds_val.csv')
 
     def __getitem__(self, index):
         if isinstance(index, torch.Tensor):
@@ -99,6 +99,7 @@ class ValDataset(BaseDataset):
 
 class BadVideoValDataset(BaseDataset):
     def __init__(self, ids, transform, num_classes):
+        print('BadVideoValDataset')
         super().__init__(ids, transform)
         self.num_classes = num_classes
         self.mapping = {'2_long': 0, '3_medium': 1, '4_closeup': 2, '5_detail': 3}
@@ -121,6 +122,7 @@ class BadVideoValDataset(BaseDataset):
 
 class TestDataset(BaseDataset):
     def __init__(self, image_dir, transform):
+        print('TestDataset')
         self.ids = glob.glob(os.path.join(image_dir, '*.*'))
         super().__init__(self.ids, transform)
         self.mapping = {'2_long': 0, '3_medium': 1, '4_closeup': 2, '5_detail': 3}
@@ -165,8 +167,9 @@ class TaskDataFactory(DataFactory):
         if is_train:
             return TrainDataset(ids=ids, transform=transform, num_classes=self.num_classes)
         else:
-            # return ValDataset(ids=ids, transform=transform, num_classes=self.num_classes)
-            return BadVideoValDataset(ids=ids, transform=transform, num_classes=self.num_classes)
+            print('make_dataset no train')
+            return ValDataset(ids=ids, transform=transform, num_classes=self.num_classes)
+            # return BadVideoValDataset(ids=ids, transform=transform, num_classes=self.num_classes)
 
     def make_loader(self, stage, is_train=False):
         dataset = self.make_dataset(stage, is_train)

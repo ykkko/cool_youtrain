@@ -24,24 +24,24 @@ def post_transform():
 def mix_transform(resize):
     return Compose([
         pre_transform(resize=resize),
-        OneOf([
-            GaussNoise(p=.9), MotionBlur(p=.9), MedianBlur(p=.9),
-        ], p=.5),
-        OneOf([
-            RandomContrast(p=.9), RandomBrightness(p=.9),   # ToGray, JpegCompression,
-        ], p=.5),
-        OneOf([
-            ToGray(p=.7),
-            JpegCompression(p=.7)
-        ], p=.3),
-        HorizontalFlip(p=.5),
-        ShiftScaleRotate(
-            shift_limit=0.2,    # 0.0625
-            scale_limit=0,
-            rotate_limit=10,
-            interpolation=1,
-            border_mode=4,
-            p=0.6),
+        # OneOf([
+        #     GaussNoise(p=.9), MotionBlur(p=.9), MedianBlur(p=.9),
+        # ], p=.5),
+        # OneOf([
+        #     RandomContrast(p=.9), RandomBrightness(p=.9),   # ToGray, JpegCompression,
+        # ], p=.5),
+        # OneOf([
+        #     ToGray(p=.7),
+        #     JpegCompression(p=.7)
+        # ], p=.3),
+        # HorizontalFlip(p=.5),
+        # ShiftScaleRotate(
+        #     shift_limit=0.2,    # 0.0625
+        #     scale_limit=0,
+        #     rotate_limit=10,
+        #     interpolation=1,
+        #     border_mode=4,
+        #     p=0.6),
         post_transform(),
     ])
 

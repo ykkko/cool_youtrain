@@ -1,12 +1,12 @@
 data_params:
-  batch_size: 16
-  num_workers: 8
+  batch_size: 32
+  num_workers: 12
   augmentation_params:
     resize: 224
 
 train_params:
-  name: rn34-shot_type_2
-  model: models_legacy.Net34
+  name: se_rn34-shot_type_2
+  model: models.SE_Resnet34_Shot
   model_params:
     pretrained: True
     num_classes: 4
@@ -15,7 +15,7 @@ train_params:
   metrics: [metrics.Accuracy]
   steps_per_epoch: 5000
   new_save: True
-#  weights: /mnt/hdd2/datasets/naive_data/shot_dataset/weights/weights/rn34-shot_type_2/0/tt_20_0.86376.pt
+#  weights: /home/kg2/se_resnet34_best.pth
 
 stages:
 -
@@ -23,7 +23,7 @@ stages:
 #  optimizer: SGD
   optimizer: Adam
   optimizer_params:
-    lr: 0.00001
+    lr: 0.001  # 0.00001 for regular models and 0.001 for se_pd
   scheduler: ReduceLROnPlateau
   scheduler_params:
     patience: 3
@@ -36,12 +36,12 @@ stages:
 #  load_best: False
 #  optimizer: Adam
 #  optimizer_params:
-#    lr: 0.0001
-#  scheduler: ReduceLROnPlateau
+#    lr: 0.00001
+#  scheduler: Cycle_LR
 #  scheduler_params:
-#    patience: 5
-#    factor: 0.1
-#    min_lr: 0.0000001
-#    verbose: True
-#  epochs: 100
+#    optimizer: Adam
+#    lr_factor: 10
+#    cycle_len: 10
+#    gamma: 0.8
+#  epochs: 300
 #  augmentation: mix_transform2

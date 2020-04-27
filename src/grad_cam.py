@@ -1,7 +1,6 @@
 """
 Original implementation: https://github.com/kazuto1011/grad-cam-pytorch
 """
-
 from collections import OrderedDict
 import os
 import argparse
@@ -34,9 +33,7 @@ class _PropagationBase(object):
         self.model.zero_grad()
         self.preds = self.model(self.image)
         self.probs = F.softmax(self.preds, dim=1)[0]
-        print(self.probs)
         self.prob, self.idx = self.probs.sort(0, True)
-        print(self.prob)
         return self.prob, self.idx
 
     def backward(self, idx):
@@ -88,13 +85,6 @@ class GradCAM(_PropagationBase):
         gcam /= gcam.max()
 
         return gcam.detach().cpu().numpy()
-
-
-def save_gradient(filename, data):
-    data -= data.min()
-    data /= data.max()
-    data *= 255.0
-    cv2.imwrite(filename, np.uint8(data))
 
 
 def save_gradcam(filename, gcam, raw_image):
